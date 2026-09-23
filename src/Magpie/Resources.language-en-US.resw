@@ -1063,6 +1063,21 @@
   <data name="Profile_Advanced_OutputAlignment_TopLeft.Content" xml:space="preserve">
     <value>Top left</value>
   </data>
+  <data name="Profile_Advanced_FramePacing.Header" xml:space="preserve">
+    <value>Frame pacing</value>
+  </data>
+  <data name="Profile_Advanced_FramePacing.Description" xml:space="preserve">
+    <value>Low latency: best with G-Sync/FreeSync, may tear without it. Smooth: best for fixed refresh rate displays; shows every frame, adds up to one frame of latency.</value>
+  </data>
+  <data name="Profile_Advanced_FramePacing_Default.Content" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="Profile_Advanced_FramePacing_LowLatency.Content" xml:space="preserve">
+    <value>Low latency</value>
+  </data>
+  <data name="Profile_Advanced_FramePacing_Smooth.Content" xml:space="preserve">
+    <value>Smooth</value>
+  </data>
   <data name="Profile_Advanced_OutputAlignment_TopRight.Content" xml:space="preserve">
     <value>Top right</value>
   </data>

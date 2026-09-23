@@ -162,6 +162,11 @@ void ScalingRuntime::_ScalingThreadProc() noexcept {
 
 	winrt::init_apartment(winrt::apartment_type::single_threaded);
 
+	// 源窗口占满 CPU 时避免呈现被推迟，不使用 TIME_CRITICAL 以免影响源窗口
+	if (!SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST)) {
+		Logger::Get().Win32Warn("SetThreadPriority 失败");
+	}
+
 	{
 		winrt::DispatcherQueueController dqc{ nullptr };
 		HRESULT hr = CreateDispatcherQueueController(

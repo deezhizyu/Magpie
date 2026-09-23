@@ -57,6 +57,7 @@ struct Profile {
 		cursorInterpolationMode = other.cursorInterpolationMode;
 		launchParameters = other.launchParameters;
 		outputAlignment = other.outputAlignment;
+		framePacing = other.framePacing;
 		scalingFlags = other.scalingFlags;
 		
 		isCroppingEnabled = other.isCroppingEnabled;
@@ -123,6 +124,7 @@ struct Profile {
 
 	std::wstring launchParameters;
 	OutputAlignment outputAlignment = OutputAlignment::Center;
+	FramePacing framePacing = FramePacing::Default;
 
 	ScalingFlags scalingFlags = ScalingFlags::AdjustCursorSpeed;
 

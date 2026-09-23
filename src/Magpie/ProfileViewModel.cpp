@@ -895,6 +895,26 @@ void ProfileViewModel::OutputAlignment(int value) {
 	RaisePropertyChanged(L"OutputAlignment");
 }
 
+int ProfileViewModel::FramePacing() const noexcept {
+	return (int)_data->framePacing;
+}
+
+void ProfileViewModel::FramePacing(int value) {
+	if (value < 0) {
+		return;
+	}
+
+	::Magpie::FramePacing framePacing = (::Magpie::FramePacing)value;
+	if (_data->framePacing == framePacing) {
+		return;
+	}
+
+	_data->framePacing = framePacing;
+	AppSettings::Get().SaveAsync();
+
+	RaisePropertyChanged(L"FramePacing");
+}
+
 double ProfileViewModel::OutputOffsetX() const noexcept {
 	return _data->outputOffsetX;
 }

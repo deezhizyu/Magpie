@@ -99,6 +99,51 @@ static void SetGpuPriority() noexcept {
 	}
 }
 
+// 获取精确的刷新率。DEVMODE::dmDisplayFrequency 是整数，如 119.88Hz 会变为 119Hz
+static std::optional<float> GetExactRefreshRate(const wchar_t* gdiDeviceName) noexcept {
+	UINT32 pathCount = 0;
+	UINT32 modeCount = 0;
+	if (GetDisplayConfigBufferSizes(QDC_ONLY_ACTIVE_PATHS, &pathCount, &modeCount) != ERROR_SUCCESS) {
+		return std::nullopt;
+	}
+
+	std::vector<DISPLAYCONFIG_PATH_INFO> paths(pathCount);
+	std::vector<DISPLAYCONFIG_MODE_INFO> modes(modeCount);
+	if (QueryDisplayConfig(QDC_ONLY_ACTIVE_PATHS, &pathCount, paths.data(),
+		&modeCount, modes.data(), nullptr) != ERROR_SUCCESS) {
+		return std::nullopt;
+	}
+
+	for (UINT32 i = 0; i < pathCount; ++i) {
+		const DISPLAYCONFIG_PATH_INFO& path = paths[i];
+
+		DISPLAYCONFIG_SOURCE_DEVICE_NAME sourceName{
+			.header = {
+				.type = DISPLAYCONFIG_DEVICE_INFO_GET_SOURCE_NAME,
+				.size = sizeof(DISPLAYCONFIG_SOURCE_DEVICE_NAME),
+				.adapterId = path.sourceInfo.adapterId,
+				.id = path.sourceInfo.id
+			}
+		};
+		if (DisplayConfigGetDeviceInfo(&sourceName.header) != ERROR_SUCCESS) {
+			continue;
+		}
+
+		if (std::wcscmp(sourceName.viewGdiDeviceName, gdiDeviceName) != 0) {
+			continue;
+		}
+
+		const DISPLAYCONFIG_RATIONAL& rate = path.targetInfo.refreshRate;
+		if (rate.Numerator == 0 || rate.Denominator == 0) {
+			return std::nullopt;
+		}
+
+		return float((double)rate.Numerator / rate.Denominator);
+	}
+
+	return std::nullopt;
+}
+
 ScalingError Renderer::Initialize(HWND hwndAttach, OverlayOptions& overlayOptions) noexcept {
 	_backendThread = std::thread(&Renderer::_BackendThreadProc, this);
 
@@ -265,11 +310,11 @@ winrt::fire_and_forget Renderer::TakeScreenshot(
 	}
 }
 
-void Renderer::_FrontendRender(bool waitForGpu) noexcept {
+void Renderer::_FrontendRender(bool waitForGpu, bool canBlock) noexcept {
 	winrt::com_ptr<ID3D11Texture2D> frameTex;
 	winrt::com_ptr<ID3D11RenderTargetView> frameRtv;
 	POINT drawOffset;
-	if (!_presenter->BeginFrame(frameTex, frameRtv, drawOffset)) {
+	if (!_presenter->BeginFrame(frameTex, frameRtv, drawOffset, canBlock)) {
 		return;
 	}
 
@@ -340,7 +385,9 @@ void Renderer::_FrontendRender(bool waitForGpu) noexcept {
 }
 
 bool Renderer::Render(bool force, bool waitForGpu) noexcept {
-	if (!force && _lastAccessMutexKey == _sharedTextureMutexKey.load(std::memory_order_relaxed)) {
+	const bool hasNewContent =
+		_lastAccessMutexKey != _sharedTextureMutexKey.load(std::memory_order_relaxed);
+	if (!force && !hasNewContent) {
 		if (_lastAccessMutexKey == 0) {
 			// 第一帧尚未完成
 			return false;
@@ -351,7 +398,22 @@ bool Renderer::Render(bool force, bool waitForGpu) noexcept {
 		}
 	}
 
-	_FrontendRender(waitForGpu);
+	const bool isSmooth = ScalingWindow::Get().Options().framePacing == FramePacing::Smooth;
+	const auto now = std::chrono::steady_clock::now();
+
+	if (isSmooth && !force && !waitForGpu) {
+		if (hasNewContent) {
+			_lastContentRenderTime = now;
+		} else if (now - _lastContentRenderTime < std::chrono::milliseconds(50)) {
+			// 源正在持续产生新帧，光标和叠加层随下一帧更新。单独呈现它们会占用呈现队列，
+			// 使下一帧推迟一个垂直同步，造成卡顿
+			return false;
+		}
+	}
+
+	// Smooth 模式下只为新帧等待呈现队列，其他情况如果队列已满则跳过
+	const bool canBlock = !isSmooth || force || hasNewContent || waitForGpu;
+	_FrontendRender(waitForGpu, canBlock);
 	return true;
 }
 
@@ -969,6 +1031,11 @@ void Renderer::_BackendThreadProc() noexcept {
 
 	winrt::init_apartment(winrt::apartment_type::single_threaded);
 
+	// 源窗口占满 CPU 时避免后端线程被推迟，不使用 TIME_CRITICAL 以免影响源窗口
+	if (!SetThreadPriority(GetCurrentThread(), THREAD_PRIORITY_HIGHEST)) {
+		Logger::Get().Win32Warn("SetThreadPriority 失败");
+	}
+
 	if (const HANDLE sharedHandle = _InitBackend()) {
 		_sharedTextureHandle.store(sharedHandle, std::memory_order_release);
 		_sharedTextureHandle.notify_one();
@@ -1101,12 +1168,18 @@ HANDLE Renderer::_InitBackend() noexcept {
 				MONITORINFOEX mi{ { sizeof(MONITORINFOEX) } };
 				GetMonitorInfo(hMon, &mi);
 
-				DEVMODE dm{ .dmSize = sizeof(DEVMODE) };
-				EnumDisplaySettings(mi.szDevice, ENUM_CURRENT_SETTINGS, &dm);
+				maxFrameRate = GetExactRefreshRate(mi.szDevice);
+				if (!maxFrameRate) {
+					DEVMODE dm{ .dmSize = sizeof(DEVMODE) };
+					EnumDisplaySettings(mi.szDevice, ENUM_CURRENT_SETTINGS, &dm);
 
-				if (dm.dmDisplayFrequency > 0) {
-					Logger::Get().Info(fmt::format("屏幕刷新率: {}", dm.dmDisplayFrequency));
-					maxFrameRate = float(dm.dmDisplayFrequency);
+					if (dm.dmDisplayFrequency > 0) {
+						maxFrameRate = float(dm.dmDisplayFrequency);
+					}
+				}
+
+				if (maxFrameRate) {
+					Logger::Get().Info(fmt::format("屏幕刷新率: {}", *maxFrameRate));
 				}
 			}
 		}

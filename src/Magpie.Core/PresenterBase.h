@@ -13,7 +13,9 @@ public:
 	virtual bool BeginFrame(
 		winrt::com_ptr<ID3D11Texture2D>& frameTex,
 		winrt::com_ptr<ID3D11RenderTargetView>& frameRtv,
-		POINT& drawOffset
+		POINT& drawOffset,
+		// 为 false 时如果无法立即呈现则返回 false 而不是等待
+		bool canBlock = true
 	) noexcept = 0;
 
 	virtual void EndFrame(bool waitForGpu = false) noexcept = 0;

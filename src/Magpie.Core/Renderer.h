@@ -71,7 +71,7 @@ public:
 	) noexcept;
 
 private:
-	void _FrontendRender(bool waitForGpu = false) noexcept;
+	void _FrontendRender(bool waitForGpu = false, bool canBlock = true) noexcept;
 
 	void _BackendThreadProc() noexcept;
 
@@ -122,6 +122,8 @@ private:
 	winrt::com_ptr<ID3D11ShaderResourceView> _frontendSharedTextureSrv;
 	winrt::com_ptr<IDXGIKeyedMutex> _frontendSharedTextureMutex;
 	uint64_t _lastAccessMutexKey = 0;
+	// Smooth 模式下用于判断源是否正在持续产生新帧
+	std::chrono::steady_clock::time_point _lastContentRenderTime;
 	RECT _destRect{};
 	SIZE _unscaledDestSize{};
 

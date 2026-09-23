@@ -99,6 +99,7 @@ void ScalingOptions::Prepare() noexcept {
 	captureMethod: {}
 	multiMonitorUsage: {}
 	cursorInterpolationMode: {}
+	framePacing: {}
 	duplicateFrameDetectionMode: {}
 	fullscreenInitialToolbarState: {}
 	windowedInitialToolbarState: {}
@@ -134,6 +135,7 @@ void ScalingOptions::Prepare() noexcept {
 		(int)captureMethod,
 		(int)multiMonitorUsage,
 		(int)cursorInterpolationMode,
+		(int)framePacing,
 		(int)duplicateFrameDetectionMode,
 		(int)fullscreenInitialToolbarState,
 		(int)windowedInitialToolbarState,

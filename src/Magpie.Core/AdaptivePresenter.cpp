@@ -67,8 +67,14 @@ bool AdaptivePresenter::_Initialize(HWND hwndAttach) noexcept {
 		return false;
 	}
 
-	// 为了降低延迟，两个垂直同步之间允许渲染 bufferCount - 1 帧
-	_dxgiSwapChain->SetMaximumFrameLatency(bufferCount - 1);
+	if (ScalingWindow::Get().Options().framePacing == FramePacing::Smooth) {
+		// 按垂直同步依次呈现，队列中最多两帧。迟到的帧推迟一个垂直同步而不是被丢弃，
+		// 这可以吸收源和屏幕时钟不同步造成的抖动，代价是最多增加一帧延迟
+		_dxgiSwapChain->SetMaximumFrameLatency(2);
+	} else {
+		// 为了降低延迟，两个垂直同步之间允许渲染 bufferCount - 1 帧
+		_dxgiSwapChain->SetMaximumFrameLatency(bufferCount - 1);
+	}
 
 	_frameLatencyWaitableObject.reset(_dxgiSwapChain->GetFrameLatencyWaitableObject());
 	if (!_frameLatencyWaitableObject) {
@@ -100,7 +106,8 @@ bool AdaptivePresenter::_Initialize(HWND hwndAttach) noexcept {
 bool AdaptivePresenter::BeginFrame(
 	winrt::com_ptr<ID3D11Texture2D>& frameTex,
 	winrt::com_ptr<ID3D11RenderTargetView>& frameRtv,
-	POINT& drawOffset
+	POINT& drawOffset,
+	bool canBlock
 ) noexcept {
 	if (_isDCompPresenting) {
 		HRESULT hr = _dcompSurface->BeginDraw(nullptr, IID_PPV_ARGS(&frameTex), &drawOffset);
@@ -119,7 +126,12 @@ bool AdaptivePresenter::BeginFrame(
 		drawOffset = {};
 
 		if (!_isframeLatencyWaited) {
-			_frameLatencyWaitableObject.wait(1000);
+			if (canBlock) {
+				_frameLatencyWaitableObject.wait(1000);
+			} else if (!_frameLatencyWaitableObject.wait(0)) {
+				// 呈现队列已满，跳过此帧
+				return false;
+			}
 			_isframeLatencyWaited = true;
 		}
 
@@ -163,8 +175,21 @@ void AdaptivePresenter::EndFrame(bool waitForGpu) noexcept {
 	if (_isDCompPresenting) {
 		_dcompDevice->Commit();
 	} else {
-		// 两个垂直同步之间允许渲染数帧，SyncInterval = 0 只呈现最新的一帧，旧帧被丢弃
-		_dxgiSwapChain->Present(0, 0);
+		switch (ScalingWindow::Get().Options().framePacing) {
+		case FramePacing::LowLatency:
+			// 立即呈现。可变刷新率显示器会立刻开始刷新，否则可能撕裂
+			_dxgiSwapChain->Present(0,
+				_deviceResources->IsTearingSupported() ? DXGI_PRESENT_ALLOW_TEARING : 0);
+			break;
+		case FramePacing::Smooth:
+			// 每帧都在垂直同步时呈现，不丢弃任何帧
+			_dxgiSwapChain->Present(1, 0);
+			break;
+		default:
+			// 两个垂直同步之间允许渲染数帧，SyncInterval = 0 只呈现最新的一帧，旧帧被丢弃
+			_dxgiSwapChain->Present(0, 0);
+			break;
+		}
 		_isframeLatencyWaited = false;
 
 		// 丢弃渲染目标的内容

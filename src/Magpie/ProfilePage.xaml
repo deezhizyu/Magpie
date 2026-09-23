@@ -716,6 +716,17 @@
 					<ToggleSwitch x:Uid="ToggleSwitch"
 					              IsOn="{x:Bind ViewModel.IsDirectFlipDisabled, Mode=TwoWay}" />
 				</local:SettingsCard>
+				<local:SettingsCard x:Uid="Profile_Advanced_FramePacing">
+					<local:SettingsCard.HeaderIcon>
+						<FontIcon Glyph="&#xEC4A;" />
+					</local:SettingsCard.HeaderIcon>
+					<ComboBox DropDownOpened="ComboBox_DropDownOpened"
+					          SelectedIndex="{x:Bind ViewModel.FramePacing, Mode=TwoWay}">
+						<ComboBoxItem x:Uid="Profile_Advanced_FramePacing_Default" />
+						<ComboBoxItem x:Uid="Profile_Advanced_FramePacing_LowLatency" />
+						<ComboBoxItem x:Uid="Profile_Advanced_FramePacing_Smooth" />
+					</ComboBox>
+				</local:SettingsCard>
 			</local:SettingsGroup>
 		</local:SimpleStackPanel>
 	</local:PageFrame>

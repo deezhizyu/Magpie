@@ -132,7 +132,8 @@ bool CompSwapchainPresenter::_Initialize(HWND hwndAttach) noexcept {
 bool CompSwapchainPresenter::BeginFrame(
 	winrt::com_ptr<ID3D11Texture2D>& frameTex,
 	winrt::com_ptr<ID3D11RenderTargetView>& frameRtv,
-	POINT& drawOffset
+	POINT& drawOffset,
+	bool /*canBlock*/
 ) noexcept {
 	// 寻找可用的缓冲区
 	uint32_t curIdx = std::numeric_limits<uint32_t>::max();

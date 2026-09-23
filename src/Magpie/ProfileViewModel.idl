@@ -75,6 +75,7 @@ namespace Magpie {
 
 		String LaunchParameters;
 		Int32 OutputAlignment;
+		Int32 FramePacing;
 		Double OutputOffsetX;
 		Double OutputOffsetY;
 		Double OutputScale;

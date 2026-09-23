@@ -166,6 +166,9 @@ struct ProfileViewModel : ProfileViewModelT<ProfileViewModel>,
 	int OutputAlignment() const noexcept;
 	void OutputAlignment(int value);
 
+	int FramePacing() const noexcept;
+	void FramePacing(int value);
+
 	double OutputOffsetX() const noexcept;
 	void OutputOffsetX(double value);
 

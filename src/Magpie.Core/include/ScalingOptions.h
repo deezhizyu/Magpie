@@ -55,6 +55,17 @@ enum class OutputAlignment {
 	COUNT
 };
 
+// 控制呈现方式，影响延迟和帧间隔的稳定性
+enum class FramePacing {
+	// 最新帧替换队列中的旧帧
+	Default,
+	// 立即呈现并允许撕裂，配合可变刷新率时延迟最低
+	LowLatency,
+	// 按垂直同步依次呈现每一帧，固定刷新率下更平滑，但最多增加一帧延迟
+	Smooth,
+	COUNT
+};
+
 enum class ScalingType {
 	Normal,		// Scale 表示缩放倍数
 	Fit,		// Scale 表示相对于屏幕能容纳的最大等比缩放的比例
@@ -211,6 +222,7 @@ struct ScalingOptions {
 	CaptureMethod captureMethod = CaptureMethod::GraphicsCapture;
 	MultiMonitorUsage multiMonitorUsage = MultiMonitorUsage::Closest;
 	OutputAlignment outputAlignment = OutputAlignment::Center;
+	FramePacing framePacing = FramePacing::Default;
 	CursorInterpolationMode cursorInterpolationMode = CursorInterpolationMode::NearestNeighbor;
 	std::optional<float> autoHideCursorDelay;
 	DuplicateFrameDetectionMode duplicateFrameDetectionMode = DuplicateFrameDetectionMode::Dynamic;
