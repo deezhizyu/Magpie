@@ -203,6 +203,7 @@ struct ScalingOptions {
 	Cropping cropping{};
 	float outputOffsetX = 0.0f;
 	float outputOffsetY = 0.0f;
+	float outputScale = 1.0f;
 	GraphicsCardId graphicsCardId;
 	float minFrameRate = 0.0f;
 	std::optional<float> maxFrameRate;

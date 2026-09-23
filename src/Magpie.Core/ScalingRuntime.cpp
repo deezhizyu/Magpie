@@ -2,6 +2,7 @@
 #include "ScalingRuntime.h"
 #include "CommonSharedConstants.h"
 #include "Logger.h"
+#include "Renderer.h"
 #include "ScalingWindow.h"
 #include "Win32Helper.h"
 #include <dispatcherqueue.h>
@@ -62,6 +63,29 @@ bool ScalingRuntime::Start(HWND hwndSrc, ScalingOptions&& options, bool force) {
 	});
 
 	return true;
+}
+
+OutputFitInfo ScalingRuntime::GetOutputFitInfo() noexcept {
+	OutputFitInfo result;
+	std::atomic<bool> done = false;
+
+	const bool enqueued = _Dispatcher().TryEnqueue([&]() {
+		if (ScalingWindow& scalingWindow = ScalingWindow::Get()) {
+			result.isScaling = true;
+			result.unscaledSize = scalingWindow.Renderer().UnscaledDestSize();
+			result.rendererRect = scalingWindow.RendererRect();
+		}
+
+		done.store(true, std::memory_order_release);
+		done.notify_one();
+	});
+
+	if (!enqueued) {
+		return result;
+	}
+
+	done.wait(false, std::memory_order_acquire);
+	return result;
 }
 
 void ScalingRuntime::ToggleScaling(bool isWindowedMode) {

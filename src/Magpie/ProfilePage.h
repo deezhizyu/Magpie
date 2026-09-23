@@ -35,6 +35,8 @@ struct ProfilePage : ProfilePageT<ProfilePage> {
 
 	void LaunchParametersTextBox_KeyDown(IInspectable const&, Input::KeyRoutedEventArgs const& args);
 
+	void AutoAdjustButton_Click(IInspectable const&, RoutedEventArgs const&);
+
 private:
 	com_ptr<ProfileViewModel> _viewModel;
 };

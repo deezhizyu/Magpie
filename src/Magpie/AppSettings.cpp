@@ -151,6 +151,8 @@ static void WriteProfile(rapidjson::PrettyWriter<rapidjson::StringBuffer>& write
 	writer.Double(profile.outputOffsetX);
 	writer.Key("outputOffsetY");
 	writer.Double(profile.outputOffsetY);
+	writer.Key("outputScale");
+	writer.Double(profile.outputScale);
 
 	writer.EndObject();
 }
@@ -1071,6 +1073,11 @@ bool AppSettings::_LoadProfile(
 
 	JsonHelper::ReadFloat(profileObj, "outputOffsetX", profile.outputOffsetX);
 	JsonHelper::ReadFloat(profileObj, "outputOffsetY", profile.outputOffsetY);
+
+	JsonHelper::ReadFloat(profileObj, "outputScale", profile.outputScale);
+	if (profile.outputScale <= 0) {
+		profile.outputScale = 1.0f;
+	}
 
 	return true;
 }

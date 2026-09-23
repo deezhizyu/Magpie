@@ -51,6 +51,9 @@ ProfileViewModel::ProfileViewModel(int profileIdx) : _isDefaultProfile(profileId
 	_adaptersChangedRevoker = AdaptersService::Get().AdaptersChanged(auto_revoke,
 		std::bind_front(&ProfileViewModel::_AdaptersService_AdaptersChanged, this));
 
+	_isScalingChangedRevoker = ScalingService::Get().IsScalingChanged(
+		auto_revoke, [this](bool) { RaisePropertyChanged(L"IsCurrentlyScaling"); });
+
 	_isScreenshotFilenameTemplateValid = _data->screenshotFilenameTemplate.empty() ||
 		ScreenshotFilenameTemplateHelper::IsValid(_data->screenshotFilenameTemplate);
 }
@@ -922,6 +925,22 @@ void ProfileViewModel::OutputOffsetY(double value) {
 	RaisePropertyChanged(L"OutputOffsetY");
 }
 
+double ProfileViewModel::OutputScale() const noexcept {
+	return _data->outputScale * 100.0;
+}
+
+void ProfileViewModel::OutputScale(double value) {
+	const float newValue = std::isnan(value) ? 1.0f : (float)(value / 100.0);
+	if (_data->outputScale == newValue) {
+		return;
+	}
+
+	_data->outputScale = newValue;
+	AppSettings::Get().SaveAsync();
+
+	RaisePropertyChanged(L"OutputScale");
+}
+
 bool ProfileViewModel::IsDirectFlipDisabled() const noexcept {
 	return _data->IsDirectFlipDisabled();
 }
@@ -935,6 +954,31 @@ void ProfileViewModel::IsDirectFlipDisabled(bool value) {
 	AppSettings::Get().SaveAsync();
 
 	RaisePropertyChanged(L"IsDirectFlipDisabled");
+}
+
+bool ProfileViewModel::IsCurrentlyScaling() const noexcept {
+	return ScalingService::Get().CurScalingProfile() == _data;
+}
+
+void ProfileViewModel::AutoAdjustOutput() {
+	if (ScalingService::Get().CurScalingProfile() != _data) {
+		return;
+	}
+
+	const ::Magpie::OutputFitInfo info = ScalingService::Get().GetOutputFitInfo();
+	if (!info.isScaling || info.unscaledSize.cx <= 0 || info.unscaledSize.cy <= 0) {
+		return;
+	}
+
+	const SIZE rendererSize = Win32Helper::GetSizeOfRect(info.rendererRect);
+	const float scale = std::min(
+		(float)rendererSize.cx / info.unscaledSize.cx,
+		(float)rendererSize.cy / info.unscaledSize.cy
+	);
+
+	OutputScale((double)scale * 100.0);
+	OutputOffsetX(0.0);
+	OutputOffsetY(0.0);
 }
 
 fire_and_forget ProfileViewModel::_LoadIcon() {

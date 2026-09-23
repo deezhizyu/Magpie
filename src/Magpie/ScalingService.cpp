@@ -283,6 +283,7 @@ void ScalingService::_ScalingRuntime_StateChanged(ScalingState value) {
 
 			// 缩放结束后清空 _hwndCurSrc，等待状态下则保留
 			_hwndCurSrc = NULL;
+			_curProfile = nullptr;
 		}
 
 		IsScalingChanged.Invoke(value == ScalingState::Scaling);
@@ -362,6 +363,7 @@ ScalingError ScalingService::_StartScaleImpl(HWND hWnd, const Profile& profile, 
 	options.outputAlignment = profile.outputAlignment;
 	options.outputOffsetX = profile.outputOffsetX;
 	options.outputOffsetY = profile.outputOffsetY;
+	options.outputScale = profile.outputScale;
 	options.cursorInterpolationMode = profile.cursorInterpolationMode;
 	options.flags = profile.scalingFlags;
 
@@ -495,6 +497,7 @@ ScalingError ScalingService::_StartScaleImpl(HWND hWnd, const Profile& profile, 
 	}
 
 	_hwndCurSrc = hWnd;
+	_curProfile = &profile;
 	return ScalingError::NoError;
 }
 

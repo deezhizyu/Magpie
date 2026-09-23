@@ -39,6 +39,11 @@ public:
 		return _destRect;
 	}
 
+	// 应用 outputScale 之前的输出尺寸，用于自动调整功能
+	SIZE UnscaledDestSize() const noexcept {
+		return _unscaledDestSize;
+	}
+
 	const FrameSourceBase& FrameSource() const noexcept {
 		return *_frameSource;
 	}
@@ -86,6 +91,10 @@ private:
 
 	void _UpdateDestRect() noexcept;
 
+	bool _InitScaledBlit() noexcept;
+
+	void _DrawScaledFrontend(ID3D11RenderTargetView* frameRtv, const RECT& rendererRect, POINT drawOffset) noexcept;
+
 	HANDLE _CreateSharedTexture(ID3D11Texture2D* effectsOutput) noexcept;
 
 	void _BackendRender(ID3D11Texture2D* effectsOutput) noexcept;
@@ -110,10 +119,18 @@ private:
 	OverlayDrawer _overlayDrawer;
 
 	winrt::com_ptr<ID3D11Texture2D> _frontendSharedTexture;
+	winrt::com_ptr<ID3D11ShaderResourceView> _frontendSharedTextureSrv;
 	winrt::com_ptr<IDXGIKeyedMutex> _frontendSharedTextureMutex;
 	uint64_t _lastAccessMutexKey = 0;
 	RECT _destRect{};
-	
+	SIZE _unscaledDestSize{};
+
+	// 用于在 outputScale != 1.0 时将 _frontendSharedTexture 缩放绘制到最终画面
+	winrt::com_ptr<ID3D11VertexShader> _simpleVS;
+	winrt::com_ptr<ID3D11InputLayout> _simpleIL;
+	winrt::com_ptr<ID3D11PixelShader> _simplePS;
+	winrt::com_ptr<ID3D11Buffer> _vtxBuffer;
+
 	std::thread _backendThread;
 
 	wil::unique_hhook _hKeyboardHook;

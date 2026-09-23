@@ -19,11 +19,14 @@
 #include "StrHelper.h"
 #include "TextureHelper.h"
 #include "Win32Helper.h"
+#include "shaders/SimplePS.h"
+#include "shaders/SimpleVS.h"
 #ifdef MP_USE_COMPSWAPCHAIN
 #include "CompSwapchainPresenter.h"
 #else
 #include "AdaptivePresenter.h"
 #endif
+#include <DirectXMath.h>
 #include <d3dkmthk.h>
 #include <dispatcherqueue.h>
 
@@ -35,6 +38,21 @@ enum class TakeScreenshotResult {
 	InvalidFilenameTemplate,
 	InternalError
 };
+
+namespace {
+
+// 用于将 _frontendSharedTexture 缩放绘制到最终画面（outputScale != 1.0 时）
+struct VertexPositionTexture {
+	DirectX::XMFLOAT2 position;
+	DirectX::XMFLOAT2 textureCoordinate;
+
+	static constexpr D3D11_INPUT_ELEMENT_DESC InputElements[] = {
+		{ "POSITION", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+		{ "TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, D3D11_APPEND_ALIGNED_ELEMENT, D3D11_INPUT_PER_VERTEX_DATA, 0 },
+	};
+};
+
+}
 
 // 大多数时候会在最后添加 Bicubic 来降采样或升采样，因此缓存在内存中
 static EffectDesc bicubicDesc;
@@ -124,6 +142,18 @@ ScalingError Renderer::Initialize(HWND hwndAttach, OverlayOptions& overlayOption
 	}
 
 	_frontendSharedTextureMutex = _frontendSharedTexture.try_as<IDXGIKeyedMutex>();
+
+	hr = _frontendResources.GetD3DDevice()->CreateShaderResourceView(
+		_frontendSharedTexture.get(), nullptr, _frontendSharedTextureSrv.put());
+	if (FAILED(hr)) {
+		Logger::Get().ComError("CreateShaderResourceView 失败", hr);
+		return ScalingError::ScalingFailedGeneral;
+	}
+
+	if (!_InitScaledBlit()) {
+		Logger::Get().Error("初始化缩放绘制资源失败");
+		return ScalingError::ScalingFailedGeneral;
+	}
 
 	_UpdateDestRect();
 
@@ -250,6 +280,7 @@ void Renderer::_FrontendRender(bool waitForGpu) noexcept {
 	d3dDC->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
 	const RECT& rendererRect = ScalingWindow::Get().RendererRect();
+	const ScalingOptions& options = ScalingWindow::Get().Options();
 	if (_destRect != rendererRect) {
 		// 存在黑边时应以黑色填充背景。使用交换链呈现时需要这个操作，因为我们指定了 
 		// DXGI_SWAP_EFFECT_FLIP_DISCARD，同时也是为了和 RTSS 兼容。使用 DirectComposition
@@ -269,7 +300,9 @@ void Renderer::_FrontendRender(bool waitForGpu) noexcept {
 		return;
 	}
 
-	{
+	if (options.outputScale != 1.0f) {
+		_DrawScaledFrontend(frameRtv.get(), rendererRect, drawOffset);
+	} else {
 		D3D11_TEXTURE2D_DESC desc;
 		frameTex->GetDesc(&desc);
 		if ((LONG)desc.Width == _destRect.right - _destRect.left
@@ -375,6 +408,13 @@ bool Renderer::OnResize() noexcept {
 	_frontendSharedTextureMutex = _frontendSharedTexture.try_as<IDXGIKeyedMutex>();
 	// 必须重置 _lastAccessMutexKey，确保不会和 _sharedTextureMutexKey 刚巧相同导致接下来的渲染被跳过
 	_lastAccessMutexKey = 0;
+
+	hr = _frontendResources.GetD3DDevice()->CreateShaderResourceView(
+		_frontendSharedTexture.get(), nullptr, _frontendSharedTextureSrv.put());
+	if (FAILED(hr)) {
+		Logger::Get().ComError("CreateShaderResourceView 失败", hr);
+		return false;
+	}
 
 	_UpdateDestRect();
 	return true;
@@ -734,19 +774,127 @@ ID3D11Texture2D* Renderer::_ResizeEffects() noexcept {
 	return inOutTexture;
 }
 
+bool Renderer::_InitScaledBlit() noexcept {
+	ID3D11Device* d3dDevice = _frontendResources.GetD3DDevice();
+
+	HRESULT hr = d3dDevice->CreateVertexShader(
+		SimpleVS, std::size(SimpleVS), nullptr, _simpleVS.put());
+	if (FAILED(hr)) {
+		Logger::Get().ComError("创建顶点着色器失败", hr);
+		return false;
+	}
+
+	hr = d3dDevice->CreateInputLayout(
+		VertexPositionTexture::InputElements,
+		(UINT)std::size(VertexPositionTexture::InputElements),
+		SimpleVS,
+		std::size(SimpleVS),
+		_simpleIL.put()
+	);
+	if (FAILED(hr)) {
+		Logger::Get().ComError("创建输入布局失败", hr);
+		return false;
+	}
+
+	hr = d3dDevice->CreatePixelShader(SimplePS, sizeof(SimplePS), nullptr, _simplePS.put());
+	if (FAILED(hr)) {
+		Logger::Get().ComError("创建像素着色器失败", hr);
+		return false;
+	}
+
+	D3D11_BUFFER_DESC bd{};
+	bd.Usage = D3D11_USAGE_DYNAMIC;
+	bd.ByteWidth = sizeof(VertexPositionTexture) * 4;
+	bd.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+	bd.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+	hr = d3dDevice->CreateBuffer(&bd, nullptr, _vtxBuffer.put());
+	if (FAILED(hr)) {
+		Logger::Get().ComError("创建顶点缓冲区失败", hr);
+		return false;
+	}
+
+	return true;
+}
+
+void Renderer::_DrawScaledFrontend(ID3D11RenderTargetView* frameRtv, const RECT& rendererRect, POINT drawOffset) noexcept {
+	const SIZE viewportSize = Win32Helper::GetSizeOfRect(rendererRect);
+	const float left = (_destRect.left - rendererRect.left) / (float)viewportSize.cx * 2 - 1.0f;
+	const float top = 1.0f - (_destRect.top - rendererRect.top) / (float)viewportSize.cy * 2;
+	const float right = (_destRect.right - rendererRect.left) / (float)viewportSize.cx * 2 - 1.0f;
+	const float bottom = 1.0f - (_destRect.bottom - rendererRect.top) / (float)viewportSize.cy * 2;
+
+	ID3D11DeviceContext4* d3dDC = _frontendResources.GetD3DDC();
+
+	d3dDC->IASetInputLayout(_simpleIL.get());
+	d3dDC->VSSetShader(_simpleVS.get(), nullptr, 0);
+
+	{
+		using DirectX::XMFLOAT2;
+		const VertexPositionTexture data[] = {
+			{ XMFLOAT2(left, top), XMFLOAT2(0.0f, 0.0f) },
+			{ XMFLOAT2(right, top), XMFLOAT2(1.0f, 0.0f) },
+			{ XMFLOAT2(left, bottom), XMFLOAT2(0.0f, 1.0f) },
+			{ XMFLOAT2(right, bottom), XMFLOAT2(1.0f, 1.0f) }
+		};
+
+		D3D11_MAPPED_SUBRESOURCE ms;
+		HRESULT hr = d3dDC->Map(_vtxBuffer.get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &ms);
+		if (FAILED(hr)) {
+			Logger::Get().ComError("Map 失败", hr);
+			return;
+		}
+
+		std::memcpy(ms.pData, data, sizeof(data));
+		d3dDC->Unmap(_vtxBuffer.get(), 0);
+
+		ID3D11Buffer* vtxBuffer = _vtxBuffer.get();
+		UINT stride = sizeof(VertexPositionTexture);
+		UINT offset = 0;
+		d3dDC->IASetVertexBuffers(0, 1, &vtxBuffer, &stride, &offset);
+	}
+
+	{
+		D3D11_VIEWPORT vp{
+			float(rendererRect.left + drawOffset.x),
+			float(rendererRect.top + drawOffset.y),
+			float(viewportSize.cx),
+			float(viewportSize.cy),
+			0.0f,
+			1.0f
+		};
+		d3dDC->RSSetViewports(1, &vp);
+	}
+
+	d3dDC->PSSetShader(_simplePS.get(), nullptr, 0);
+	ID3D11ShaderResourceView* srv = _frontendSharedTextureSrv.get();
+	d3dDC->PSSetShaderResources(0, 1, &srv);
+	ID3D11SamplerState* sampler = _frontendResources.GetSampler(
+		D3D11_FILTER_MIN_MAG_MIP_LINEAR, D3D11_TEXTURE_ADDRESS_CLAMP);
+	d3dDC->PSSetSamplers(0, 1, &sampler);
+
+	d3dDC->OMSetRenderTargets(1, &frameRtv, nullptr);
+
+	d3dDC->Draw(4, 0);
+}
+
 void Renderer::_UpdateDestRect() noexcept {
 	const RECT& rendererRect = ScalingWindow::Get().RendererRect();
 	const ScalingOptions& options = ScalingWindow::Get().Options();
 	OutputAlignment alignment = options.outputAlignment;
 
-	LONG destWidth;
-	LONG destHeight;
+	LONG rawWidth;
+	LONG rawHeight;
 	{
 		D3D11_TEXTURE2D_DESC desc;
 		_frontendSharedTexture->GetDesc(&desc);
-		destWidth = (LONG)desc.Width;
-		destHeight = (LONG)desc.Height;
+		rawWidth = (LONG)desc.Width;
+		rawHeight = (LONG)desc.Height;
 	}
+	_unscaledDestSize = { rawWidth, rawHeight };
+
+	const LONG destWidth = std::lround(rawWidth * options.outputScale);
+	const LONG destHeight = std::lround(rawHeight * options.outputScale);
 
 	using enum OutputAlignment;
 
@@ -778,9 +926,6 @@ void Renderer::_UpdateDestRect() noexcept {
 	_destRect.right += offsetX;
 	_destRect.top += offsetY;
 	_destRect.bottom += offsetY;
-
-	assert(_destRect.left + destWidth == _destRect.right);
-	assert(_destRect.top + destHeight == _destRect.bottom);
 }
 
 HANDLE Renderer::_CreateSharedTexture(ID3D11Texture2D* effectsOutput) noexcept {

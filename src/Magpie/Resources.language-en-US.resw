@@ -1072,6 +1072,24 @@
   <data name="Profile_Advanced_OutputOffset.Description" xml:space="preserve">
     <value>Shifts the scaled output by the given number of pixels. Useful when the source (e.g. a virtual display) doesn't match your monitor's resolution</value>
   </data>
+  <data name="Profile_Advanced_OutputScale.Header" xml:space="preserve">
+    <value>Output scale</value>
+  </data>
+  <data name="Profile_Advanced_OutputScale.Description" xml:space="preserve">
+    <value>Scales the rendered output by this percentage, independent of the upscaling algorithm. Useful when the source resolution doesn't match your monitor's</value>
+  </data>
+  <data name="Profile_Advanced_OutputScale_Percent.Text" xml:space="preserve">
+    <value>%</value>
+  </data>
+  <data name="Profile_Advanced_AutoAdjust.Header" xml:space="preserve">
+    <value>Auto-adjust</value>
+  </data>
+  <data name="Profile_Advanced_AutoAdjust.Description" xml:space="preserve">
+    <value>Computes Output scale and Output offset to fit the current content to your monitor. Only available while this profile is actively scaling; restart scaling afterwards to apply</value>
+  </data>
+  <data name="Profile_Advanced_AutoAdjust_Button.Content" xml:space="preserve">
+    <value>Fit to screen</value>
+  </data>
   <data name="Home_Advanced_DeveloperOptions_DisableTopmost.Content" xml:space="preserve">
     <value>Disable always-on-top</value>
   </data>

@@ -9,12 +9,23 @@ enum class ScalingState {
 	Waiting
 };
 
+// 用于 Auto-adjust 功能:读取当前缩放会话中未应用 outputScale 的输出尺寸
+// 以及渲染器矩形(物理显示器/窗口区域),据此计算合适的 outputScale/outputOffset
+struct OutputFitInfo {
+	bool isScaling = false;
+	SIZE unscaledSize{};
+	RECT rendererRect{};
+};
+
 class ScalingRuntime {
 public:
 	ScalingRuntime();
 	~ScalingRuntime();
 
 	bool Start(HWND hwndSrc, struct ScalingOptions&& options, bool force);
+
+	// 阻塞直至缩放线程返回结果，仅用于响应用户的一次性操作(如 Auto-adjust 按钮)
+	OutputFitInfo GetOutputFitInfo() noexcept;
 
 	void ToggleScaling(bool isWindowedMode);
 

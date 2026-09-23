@@ -98,4 +98,8 @@ void ProfilePage::LaunchParametersTextBox_KeyDown(IInspectable const&, Input::Ke
 	}
 }
 
+void ProfilePage::AutoAdjustButton_Click(IInspectable const&, RoutedEventArgs const&) {
+	_viewModel->AutoAdjustOutput();
+}
+
 }

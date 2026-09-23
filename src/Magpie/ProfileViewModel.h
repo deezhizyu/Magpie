@@ -172,8 +172,15 @@ struct ProfileViewModel : ProfileViewModelT<ProfileViewModel>,
 	double OutputOffsetY() const noexcept;
 	void OutputOffsetY(double value);
 
+	double OutputScale() const noexcept;
+	void OutputScale(double value);
+
 	bool IsDirectFlipDisabled() const noexcept;
 	void IsDirectFlipDisabled(bool value);
+
+	bool IsCurrentlyScaling() const noexcept;
+
+	void AutoAdjustOutput();
 
 private:
 	fire_and_forget _LoadIcon();
@@ -189,6 +196,7 @@ private:
 
 	::Magpie::MultithreadEvent<bool>::EventRevoker _appThemeChangedRevoker;
 	::Magpie::Event<uint32_t>::EventRevoker _dpiChangedRevoker;
+	::Magpie::Event<bool>::EventRevoker _isScalingChangedRevoker;
 	::Magpie::Event<>::EventRevoker _adaptersChangedRevoker;
 
 	IconElement _icon{ nullptr };

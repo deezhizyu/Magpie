@@ -683,6 +683,32 @@
 						                Value="{x:Bind ViewModel.OutputOffsetY, Mode=TwoWay}" />
 					</local:SimpleStackPanel>
 				</local:SettingsCard>
+				<local:SettingsCard x:Uid="Profile_Advanced_OutputScale">
+					<local:SettingsCard.HeaderIcon>
+						<FontIcon Glyph="&#xE9A6;" />
+					</local:SettingsCard.HeaderIcon>
+					<local:SimpleStackPanel Orientation="Horizontal"
+					                        Spacing="8">
+						<muxc:NumberBox LargeChange="10"
+						                Loaded="NumberBox_Loaded"
+						                Minimum="10"
+						                Maximum="500"
+						                NumberFormatter="{x:Bind local:App.DoubleFormatter, Mode=OneTime}"
+						                SmallChange="1"
+						                SpinButtonPlacementMode="Inline"
+						                Value="{x:Bind ViewModel.OutputScale, Mode=TwoWay}" />
+						<TextBlock x:Uid="Profile_Advanced_OutputScale_Percent"
+						           VerticalAlignment="Center" />
+					</local:SimpleStackPanel>
+				</local:SettingsCard>
+				<local:SettingsCard x:Uid="Profile_Advanced_AutoAdjust">
+					<local:SettingsCard.HeaderIcon>
+						<FontIcon Glyph="&#xE9A9;" />
+					</local:SettingsCard.HeaderIcon>
+					<Button x:Uid="Profile_Advanced_AutoAdjust_Button"
+					        Click="AutoAdjustButton_Click"
+					        IsEnabled="{x:Bind ViewModel.IsCurrentlyScaling, Mode=OneWay}" />
+				</local:SettingsCard>
 				<local:SettingsCard x:Uid="Profile_Advanced_DisableDirectFlip">
 					<local:SettingsCard.HeaderIcon>
 						<FontIcon Glyph="&#xF259;" />

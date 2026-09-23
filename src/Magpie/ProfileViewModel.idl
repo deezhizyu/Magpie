@@ -77,6 +77,10 @@ namespace Magpie {
 		Int32 OutputAlignment;
 		Double OutputOffsetX;
 		Double OutputOffsetY;
+		Double OutputScale;
 		Boolean IsDirectFlipDisabled;
+
+		Boolean IsCurrentlyScaling { get; };
+		void AutoAdjustOutput();
 	}
 }

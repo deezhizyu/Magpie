@@ -49,6 +49,7 @@ struct Profile {
 		cropping = other.cropping;
 		outputOffsetX = other.outputOffsetX;
 		outputOffsetY = other.outputOffsetY;
+		outputScale = other.outputScale;
 		captureMethod = other.captureMethod;
 		graphicsCardId = other.graphicsCardId;
 		maxFrameRate = other.maxFrameRate;
@@ -109,6 +110,7 @@ struct Profile {
 	Cropping cropping{};
 	float outputOffsetX = 0.0f;
 	float outputOffsetY = 0.0f;
+	float outputScale = 1.0f;
 	// -1 表示原样
 	int scalingMode = -1;
 	CaptureMethod captureMethod = CaptureMethod::GraphicsCapture;
