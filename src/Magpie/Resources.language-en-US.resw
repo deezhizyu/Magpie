@@ -1085,7 +1085,7 @@
     <value>Auto-adjust</value>
   </data>
   <data name="Profile_Advanced_AutoAdjust.Description" xml:space="preserve">
-    <value>Computes Output scale and Output offset to fit the current content to your monitor. Only available while this profile is actively scaling; restart scaling afterwards to apply</value>
+    <value>Computes Output scale and Output offset to fit the current content to your monitor. Only available while this profile is actively scaling. Waits 3 seconds after clicking so you can switch back to the game first; restart scaling afterwards to apply</value>
   </data>
   <data name="Profile_Advanced_AutoAdjust_Button.Content" xml:space="preserve">
     <value>Fit to screen</value>

@@ -971,22 +971,14 @@ fire_and_forget ProfileViewModel::AutoAdjustOutput() {
 	using namespace std::chrono;
 
 	// 点击此按钮通常需要先切换到 Magpie 窗口，如果源窗口是独占全屏游戏，这会导致它
-	// 暂时最小化，缩放引擎随之暂停几百毫秒到几秒。重试最多 3 秒等待它恢复。
-	const auto deadline = steady_clock::now() + 3s;
-	::Magpie::OutputFitInfo info;
-	while (true) {
-		info = ScalingService::Get().GetOutputFitInfo();
-		if (info.isScaling || steady_clock::now() >= deadline) {
-			break;
-		}
+	// 暂时最小化。给用户 3 秒时间切换回游戏，让它重新变为前台可见状态。
+	co_await 3s;
 
-		co_await 200ms;
-
-		if (!weakThis.get() || ScalingService::Get().CurScalingProfile() != data) {
-			co_return;
-		}
+	if (!weakThis.get() || ScalingService::Get().CurScalingProfile() != data) {
+		co_return;
 	}
 
+	const ::Magpie::OutputFitInfo info = ScalingService::Get().GetOutputFitInfo();
 	if (!info.isScaling || info.unscaledSize.cx <= 0 || info.unscaledSize.cy <= 0) {
 		co_return;
 	}
