@@ -960,14 +960,35 @@ bool ProfileViewModel::IsCurrentlyScaling() const noexcept {
 	return ScalingService::Get().CurScalingProfile() == _data;
 }
 
-void ProfileViewModel::AutoAdjustOutput() {
+fire_and_forget ProfileViewModel::AutoAdjustOutput() {
 	if (ScalingService::Get().CurScalingProfile() != _data) {
-		return;
+		co_return;
 	}
 
-	const ::Magpie::OutputFitInfo info = ScalingService::Get().GetOutputFitInfo();
+	const ::Magpie::Profile* data = _data;
+	auto weakThis = get_weak();
+
+	using namespace std::chrono;
+
+	// 点击此按钮通常需要先切换到 Magpie 窗口，如果源窗口是独占全屏游戏，这会导致它
+	// 暂时最小化，缩放引擎随之暂停几百毫秒到几秒。重试最多 3 秒等待它恢复。
+	const auto deadline = steady_clock::now() + 3s;
+	::Magpie::OutputFitInfo info;
+	while (true) {
+		info = ScalingService::Get().GetOutputFitInfo();
+		if (info.isScaling || steady_clock::now() >= deadline) {
+			break;
+		}
+
+		co_await 200ms;
+
+		if (!weakThis.get() || ScalingService::Get().CurScalingProfile() != data) {
+			co_return;
+		}
+	}
+
 	if (!info.isScaling || info.unscaledSize.cx <= 0 || info.unscaledSize.cy <= 0) {
-		return;
+		co_return;
 	}
 
 	const SIZE rendererSize = Win32Helper::GetSizeOfRect(info.rendererRect);

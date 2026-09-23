@@ -180,7 +180,7 @@ struct ProfileViewModel : ProfileViewModelT<ProfileViewModel>,
 
 	bool IsCurrentlyScaling() const noexcept;
 
-	void AutoAdjustOutput();
+	fire_and_forget AutoAdjustOutput();
 
 private:
 	fire_and_forget _LoadIcon();
