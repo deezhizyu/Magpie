@@ -1066,6 +1066,12 @@
   <data name="Profile_Advanced_OutputAlignment_TopRight.Content" xml:space="preserve">
     <value>Top right</value>
   </data>
+  <data name="Profile_Advanced_OutputOffset.Header" xml:space="preserve">
+    <value>Output offset</value>
+  </data>
+  <data name="Profile_Advanced_OutputOffset.Description" xml:space="preserve">
+    <value>Shifts the scaled output by the given number of pixels. Useful when the source (e.g. a virtual display) doesn't match your monitor's resolution</value>
+  </data>
   <data name="Home_Advanced_DeveloperOptions_DisableTopmost.Content" xml:space="preserve">
     <value>Disable always-on-top</value>
   </data>

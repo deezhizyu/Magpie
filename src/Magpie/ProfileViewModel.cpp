@@ -892,6 +892,36 @@ void ProfileViewModel::OutputAlignment(int value) {
 	RaisePropertyChanged(L"OutputAlignment");
 }
 
+double ProfileViewModel::OutputOffsetX() const noexcept {
+	return _data->outputOffsetX;
+}
+
+void ProfileViewModel::OutputOffsetX(double value) {
+	if (_data->outputOffsetX == value) {
+		return;
+	}
+
+	_data->outputOffsetX = std::isnan(value) ? 0.0f : (float)value;
+	AppSettings::Get().SaveAsync();
+
+	RaisePropertyChanged(L"OutputOffsetX");
+}
+
+double ProfileViewModel::OutputOffsetY() const noexcept {
+	return _data->outputOffsetY;
+}
+
+void ProfileViewModel::OutputOffsetY(double value) {
+	if (_data->outputOffsetY == value) {
+		return;
+	}
+
+	_data->outputOffsetY = std::isnan(value) ? 0.0f : (float)value;
+	AppSettings::Get().SaveAsync();
+
+	RaisePropertyChanged(L"OutputOffsetY");
+}
+
 bool ProfileViewModel::IsDirectFlipDisabled() const noexcept {
 	return _data->IsDirectFlipDisabled();
 }

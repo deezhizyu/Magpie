@@ -75,6 +75,8 @@ namespace Magpie {
 
 		String LaunchParameters;
 		Int32 OutputAlignment;
+		Double OutputOffsetX;
+		Double OutputOffsetY;
 		Boolean IsDirectFlipDisabled;
 	}
 }

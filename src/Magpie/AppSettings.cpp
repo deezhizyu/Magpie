@@ -147,6 +147,11 @@ static void WriteProfile(rapidjson::PrettyWriter<rapidjson::StringBuffer>& write
 	writer.Key("outputAlignment");
 	writer.Uint((uint32_t)profile.outputAlignment);
 
+	writer.Key("outputOffsetX");
+	writer.Double(profile.outputOffsetX);
+	writer.Key("outputOffsetY");
+	writer.Double(profile.outputOffsetY);
+
 	writer.EndObject();
 }
 
@@ -1063,6 +1068,9 @@ bool AppSettings::_LoadProfile(
 	}
 
 	JsonHelper::ReadEnum(profileObj, "outputAlignment", profile.outputAlignment);
+
+	JsonHelper::ReadFloat(profileObj, "outputOffsetX", profile.outputOffsetX);
+	JsonHelper::ReadFloat(profileObj, "outputOffsetY", profile.outputOffsetY);
 
 	return true;
 }

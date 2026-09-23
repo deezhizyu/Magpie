@@ -201,6 +201,8 @@ struct ScalingOptions {
 	std::vector<EffectOption> effects;
 	ScalingFlags flags = ScalingFlags::AdjustCursorSpeed;
 	Cropping cropping{};
+	float outputOffsetX = 0.0f;
+	float outputOffsetY = 0.0f;
 	GraphicsCardId graphicsCardId;
 	float minFrameRate = 0.0f;
 	std::optional<float> maxFrameRate;

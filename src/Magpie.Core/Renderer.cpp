@@ -736,7 +736,8 @@ ID3D11Texture2D* Renderer::_ResizeEffects() noexcept {
 
 void Renderer::_UpdateDestRect() noexcept {
 	const RECT& rendererRect = ScalingWindow::Get().RendererRect();
-	OutputAlignment alignment = ScalingWindow::Get().Options().outputAlignment;
+	const ScalingOptions& options = ScalingWindow::Get().Options();
+	OutputAlignment alignment = options.outputAlignment;
 
 	LONG destWidth;
 	LONG destHeight;
@@ -770,6 +771,13 @@ void Renderer::_UpdateDestRect() noexcept {
 		_destRect.top = rendererRect.bottom - destHeight;
 		_destRect.bottom = rendererRect.bottom;
 	}
+
+	const LONG offsetX = std::lround(options.outputOffsetX);
+	const LONG offsetY = std::lround(options.outputOffsetY);
+	_destRect.left += offsetX;
+	_destRect.right += offsetX;
+	_destRect.top += offsetY;
+	_destRect.bottom += offsetY;
 
 	assert(_destRect.left + destWidth == _destRect.right);
 	assert(_destRect.top + destHeight == _destRect.bottom);

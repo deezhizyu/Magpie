@@ -166,6 +166,12 @@ struct ProfileViewModel : ProfileViewModelT<ProfileViewModel>,
 	int OutputAlignment() const noexcept;
 	void OutputAlignment(int value);
 
+	double OutputOffsetX() const noexcept;
+	void OutputOffsetX(double value);
+
+	double OutputOffsetY() const noexcept;
+	void OutputOffsetY(double value);
+
 	bool IsDirectFlipDisabled() const noexcept;
 	void IsDirectFlipDisabled(bool value);
 

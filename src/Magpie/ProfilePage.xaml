@@ -663,6 +663,26 @@
 						<ComboBoxItem x:Uid="Profile_Advanced_OutputAlignment_BottomRight" />
 					</ComboBox>
 				</local:SettingsCard>
+				<local:SettingsCard x:Uid="Profile_Advanced_OutputOffset">
+					<local:SettingsCard.HeaderIcon>
+						<PathIcon Data="{StaticResource MoveIconData}" />
+					</local:SettingsCard.HeaderIcon>
+					<local:SimpleStackPanel Orientation="Horizontal"
+					                        Spacing="8">
+						<muxc:NumberBox LargeChange="10"
+						                Loaded="NumberBox_Loaded"
+						                NumberFormatter="{x:Bind local:App.DoubleFormatter, Mode=OneTime}"
+						                SmallChange="1"
+						                SpinButtonPlacementMode="Inline"
+						                Value="{x:Bind ViewModel.OutputOffsetX, Mode=TwoWay}" />
+						<muxc:NumberBox LargeChange="10"
+						                Loaded="NumberBox_Loaded"
+						                NumberFormatter="{x:Bind local:App.DoubleFormatter, Mode=OneTime}"
+						                SmallChange="1"
+						                SpinButtonPlacementMode="Inline"
+						                Value="{x:Bind ViewModel.OutputOffsetY, Mode=TwoWay}" />
+					</local:SimpleStackPanel>
+				</local:SettingsCard>
 				<local:SettingsCard x:Uid="Profile_Advanced_DisableDirectFlip">
 					<local:SettingsCard.HeaderIcon>
 						<FontIcon Glyph="&#xF259;" />

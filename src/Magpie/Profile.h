@@ -47,6 +47,8 @@ struct Profile {
 		customCursorScaleFactor = other.customCursorScaleFactor;
 		autoHideCursorDelay = other.autoHideCursorDelay;
 		cropping = other.cropping;
+		outputOffsetX = other.outputOffsetX;
+		outputOffsetY = other.outputOffsetY;
 		captureMethod = other.captureMethod;
 		graphicsCardId = other.graphicsCardId;
 		maxFrameRate = other.maxFrameRate;
@@ -105,6 +107,8 @@ struct Profile {
 	float autoHideCursorDelay = 3.0f;
 
 	Cropping cropping{};
+	float outputOffsetX = 0.0f;
+	float outputOffsetY = 0.0f;
 	// -1 表示原样
 	int scalingMode = -1;
 	CaptureMethod captureMethod = CaptureMethod::GraphicsCapture;

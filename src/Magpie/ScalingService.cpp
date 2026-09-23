@@ -360,6 +360,8 @@ ScalingError ScalingService::_StartScaleImpl(HWND hWnd, const Profile& profile, 
 	}
 	options.multiMonitorUsage = profile.multiMonitorUsage;
 	options.outputAlignment = profile.outputAlignment;
+	options.outputOffsetX = profile.outputOffsetX;
+	options.outputOffsetY = profile.outputOffsetY;
 	options.cursorInterpolationMode = profile.cursorInterpolationMode;
 	options.flags = profile.scalingFlags;
 
