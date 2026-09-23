@@ -36,7 +36,7 @@ jobs:
 
     - name: Build and sign
       if: github.ref == 'refs/heads/dev' || github.ref == 'refs/heads/main'
-      run: python scripts/publish.py --compiler=${{ matrix.compiler }} --platform=${{ matrix.platform }} --pfx-path=certs\Magpie.pfx --pfx-password="${{ secrets.MAGPIE_PFX_PASSWORD }}"
+      run: python scripts/publish.py --compiler=${{ matrix.compiler }} --platform=${{ matrix.platform }}
 
     - name: Save hash
       id: hash
